@@ -57,8 +57,10 @@ public class AuthService {
         return UUID.randomUUID(); //todo запрос в сервис пользователей
     }
 
-    public void logout(String token){
-
+    public void logout(String token) {
+        if (tokenService.isTokenValid(token)) {
+            //todo тут удаляем refresh токен из бд через репозиторий
+        }
     }
 
     public void checkClientData(ClientRegDataDto clientData) {

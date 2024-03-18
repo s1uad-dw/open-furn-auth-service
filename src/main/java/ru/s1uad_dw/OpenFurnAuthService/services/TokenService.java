@@ -51,7 +51,7 @@ public class TokenService {
     }
 
     public TokensResponseDto updateTokens(String token){
-        if (!isTokenExpired(token)){
+        if (isTokenValid(token)){
             Claims claims = getTokenBody(token);
             UUID userId = UUID.fromString(claims.getSubject());
             List<String> roles = (List<String>) claims.get("roles");
@@ -69,5 +69,17 @@ public class TokenService {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    public boolean isTokenContains(String token){
+        Claims claims = getTokenBody(token);
+        UUID userId = UUID.fromString(claims.getSubject());
+        //todo получаем из репозитория клиентов список refresh токенов пользователя с id userId
+        // return true если token в списке, false если нет
+        return true;
+    }
+
+    public boolean isTokenValid(String token){
+        return !isTokenExpired(token) && isTokenContains(token);
     }
 }
