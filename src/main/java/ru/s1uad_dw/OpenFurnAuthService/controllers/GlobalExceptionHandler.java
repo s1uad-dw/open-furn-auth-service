@@ -50,9 +50,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<AppError> catchTokenLifetimeExpiredException(TokenLifetimeExpiredException e, HttpServletRequest request) {
         return new ResponseEntity<>(new AppError(
                 LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
+                HttpStatus.UNAUTHORIZED.value(),
                 e.getMessage(),
                 request.getRequestURL().toString()
-        ), HttpStatus.CONFLICT);
+        ), HttpStatus.UNAUTHORIZED);
     }
 }

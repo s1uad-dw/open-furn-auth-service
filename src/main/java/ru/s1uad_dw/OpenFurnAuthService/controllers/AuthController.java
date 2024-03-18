@@ -5,17 +5,22 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.s1uad_dw.OpenFurnAuthService.dtos.ClientAuthDataDto;
 import ru.s1uad_dw.OpenFurnAuthService.dtos.ClientRegDataDto;
 import ru.s1uad_dw.OpenFurnAuthService.dtos.TokensResponseDto;
 import ru.s1uad_dw.OpenFurnAuthService.exceptions.InvalidDataException;
 import ru.s1uad_dw.OpenFurnAuthService.exceptions.UserAlreadyRegisteredException;
+import ru.s1uad_dw.OpenFurnAuthService.services.AuthService;
 
 @RestController
 @RequestMapping("api/v1/auth_service")
 @AllArgsConstructor
 public class AuthController {
+    @Autowired
+    private AuthService service;
+
     @PostMapping("/auth")
     @Operation(summary = "Authorization by email|username|phone and password")
     @ApiResponses(value = {
@@ -35,7 +40,7 @@ public class AuthController {
                     })
     })
     public TokensResponseDto auth(@RequestBody ClientAuthDataDto clientData){
-        return null;
+        return service.auth(clientData);
     }
     @PostMapping("/reg")
     @Operation(summary = "Registration by email|username|phone and password")
@@ -63,7 +68,7 @@ public class AuthController {
                     })
     })
     public TokensResponseDto reg(@RequestBody ClientRegDataDto clientData){
-        return null;
+        return service.reg(clientData);
     }
 
     @PostMapping("/logout")
@@ -85,7 +90,7 @@ public class AuthController {
                     })
     })
     public String logOut(@RequestParam String token){
-        return null;
+        service.logout();
     }
 
 }

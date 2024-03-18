@@ -7,13 +7,18 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.s1uad_dw.OpenFurnAuthService.dtos.TokensResponseDto;
+import ru.s1uad_dw.OpenFurnAuthService.exceptions.TokenLifetimeExpiredException;
+import ru.s1uad_dw.OpenFurnAuthService.services.TokenService;
 
 @RestController
 @RequestMapping("api/v1/auth_service")
 @AllArgsConstructor
 public class TokenController {
+    @Autowired
+    private TokenService service;
 
     @PostMapping("/update_tokens")
     @Operation(summary = "Update access and refresh tokens")
@@ -33,15 +38,7 @@ public class TokenController {
                                     mediaType = "application/json")
                     })
     })
-    public TokensResponseDto updatingTokens(@RequestBody String refreshToken) {
-        // Проверка срока действия refreshToken
-
-        // Генерация новой пары accessToken и refreshToken
-
-        // Сохранение новых токенов
-
-        // Возвращаем новые токены
-
-        return null;
+    public TokensResponseDto updatingTokens(@RequestBody String token) {
+        return service.updateTokens(token);
     }
 }
