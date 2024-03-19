@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import ru.s1uad_dw.OpenFurnAuthService.daos.Client;
 import ru.s1uad_dw.OpenFurnAuthService.dtos.TokensResponseDto;
 import ru.s1uad_dw.OpenFurnAuthService.exceptions.TokenLifetimeExpiredException;
+import ru.s1uad_dw.OpenFurnAuthService.reporitories.ClientRepository;
 
 import java.util.Date;
 import java.util.List;
@@ -21,7 +22,9 @@ import java.util.UUID;
 @Service
 public class TokenService {
     @Autowired
-    ClientService clientService;
+    private ClientService clientService;
+    @Autowired
+    private ClientRepository clientRepository;
     @Value("${secret-key}")
     private String secretKey;
 
@@ -74,9 +77,10 @@ public class TokenService {
     public boolean isTokenContains(String token){
         Claims claims = getTokenBody(token);
         UUID userId = UUID.fromString(claims.getSubject());
-        //todo получаем из репозитория клиентов список refresh токенов пользователя с id userId
-        // return true если token в списке, false если нет
-        return true;
+        List<String> clientTokens = clientRepository.findRefreshTokensById(userId);
+        if (clientTokens.contains(token))
+            return true;
+        return false;
     }
 
     public boolean isTokenValid(String token){
