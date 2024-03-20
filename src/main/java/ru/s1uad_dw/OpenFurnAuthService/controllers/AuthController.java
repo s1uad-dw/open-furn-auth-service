@@ -89,8 +89,8 @@ public class AuthController {
                                     mediaType = "application/json")
                     })
     })
-    public String logOut(@RequestParam String token){
-        service.logout();
+    public void logOut(@RequestBody String token){
+        service.logout(token);
     }
 
 }

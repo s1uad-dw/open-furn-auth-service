@@ -13,10 +13,12 @@ import org.springframework.stereotype.Service;
 import ru.s1uad_dw.OpenFurnAuthService.daos.Client;
 import ru.s1uad_dw.OpenFurnAuthService.dtos.TokensResponseDto;
 import ru.s1uad_dw.OpenFurnAuthService.exceptions.TokenLifetimeExpiredException;
+import ru.s1uad_dw.OpenFurnAuthService.exceptions.UnknownTokenException;
 import ru.s1uad_dw.OpenFurnAuthService.reporitories.ClientRepository;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -36,6 +38,7 @@ public class TokenService {
                 .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()), SignatureAlgorithm.HS256)
                 .compact();
     }
+
     public TokensResponseDto genTokenPair(UUID userId, List<String> roles) {
         return new TokensResponseDto(
                 genToken(userId, roles, 1),
@@ -43,7 +46,7 @@ public class TokenService {
         );
     }
 
-    public boolean isTokenExpired(String token){
+    public boolean isTokenExpired(String token) {
         try {
             Claims claims = getTokenBody(token);
             Date expiration = claims.getExpiration();
@@ -53,20 +56,17 @@ public class TokenService {
         }
     }
 
-    public TokensResponseDto updateTokens(String token){
-        if (isTokenValid(token)){
-            Claims claims = getTokenBody(token);
-            UUID userId = UUID.fromString(claims.getSubject());
-            List<String> roles = (List<String>) claims.get("roles");
-            TokensResponseDto tokenPair = genTokenPair(userId, roles);
-            clientService.save(new Client(userId, tokenPair.getAccessToken(), tokenPair.getRefreshToken()));
-            return tokenPair;
-        } else {
-            throw new TokenLifetimeExpiredException("Token expired");
-        }
+    public TokensResponseDto updateTokens(String token) {
+        checkToken(token);
+        Claims claims = getTokenBody(token);
+        UUID userId = UUID.fromString(claims.getSubject());
+        List<String> roles = (List<String>) claims.get("roles");
+        TokensResponseDto tokenPair = genTokenPair(userId, roles);
+        clientService.save(new Client(userId, List.of(tokenPair.getRefreshToken())));
+        return tokenPair;
     }
 
-    public Claims getTokenBody(String token){
+    public Claims getTokenBody(String token) {
         return Jwts.parser()
                 .setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes()))
                 .build()
@@ -74,16 +74,18 @@ public class TokenService {
                 .getBody();
     }
 
-    public boolean isTokenContains(String token){
+    public boolean isTokenContains(String token) {
         Claims claims = getTokenBody(token);
         UUID userId = UUID.fromString(claims.getSubject());
-        List<String> clientTokens = clientRepository.findRefreshTokensById(userId);
-        if (clientTokens.contains(token))
-            return true;
-        return false;
+        Optional<Client> client = clientRepository.findById(userId);
+        return client.isPresent() && client.get().getRefreshTokens().contains(token);
     }
 
-    public boolean isTokenValid(String token){
-        return !isTokenExpired(token) && isTokenContains(token);
+    public void checkToken(String token) {
+        if (isTokenExpired(token))
+            throw new TokenLifetimeExpiredException("Token expired");
+        if (!isTokenContains(token)) {
+            throw new UnknownTokenException("Unknown token");
+        }
     }
 }

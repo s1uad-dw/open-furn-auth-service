@@ -9,9 +9,11 @@ import ru.s1uad_dw.OpenFurnAuthService.dtos.TokensResponseDto;
 import ru.s1uad_dw.OpenFurnAuthService.exceptions.InvalidDataException;
 import ru.s1uad_dw.OpenFurnAuthService.exceptions.UserAlreadyRegisteredException;
 import ru.s1uad_dw.OpenFurnAuthService.exceptions.UserIsNotRegisteredException;
+import ru.s1uad_dw.OpenFurnAuthService.reporitories.ClientRepository;
 import ru.s1uad_dw.OpenFurnAuthService.validators.ClientDataValidator;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -21,12 +23,15 @@ public class AuthService {
     @Autowired
     private ClientService clientService;
 
+    @Autowired
+    private ClientRepository clientRepository;
+
     public TokensResponseDto reg(ClientRegDataDto clientData) {
         checkClientData(clientData);
         if (!isUserRegistered(clientData.getLogin())) {
             UUID userId = saveUserToUserService(clientData);
             TokensResponseDto tokenPair = tokenService.genTokenPair(userId, List.of("user"));
-            clientService.save(new Client(userId, tokenPair.getAccessToken(), tokenPair.getRefreshToken()));
+            clientService.save(new Client(userId, List.of(tokenPair.getRefreshToken())));
             return tokenPair;
         } else {
             throw new UserAlreadyRegisteredException("User already registered");
@@ -37,16 +42,20 @@ public class AuthService {
         if (isUserRegistered(clientData.getLogin())) {
             UUID userId = getUserIdFromUserService(clientData.getLogin());
             TokensResponseDto tokenPair = tokenService.genTokenPair(userId, List.of("user"));
-            clientService.save(new Client(userId, tokenPair.getAccessToken(), tokenPair.getRefreshToken()));
-            return tokenPair;
-        } else {
-            throw new UserIsNotRegisteredException("User is not registered");
+            Optional<Client> client = clientRepository.findById(userId);
+            if (client.isPresent()){
+                client.get().getRefreshTokens().add(tokenPair.getRefreshToken());
+                clientService.save(client.get());
+                return tokenPair;
+            }
         }
+        throw new UserIsNotRegisteredException("User not registered");
     }
 
 
     public boolean isUserRegistered(String login) {
-        return true;  //todo запрос в сервис пользователей
+
+        return true; //todo запрос в сервис пользователей
     }
 
     public UUID getUserIdFromUserService(String login) {
@@ -58,9 +67,9 @@ public class AuthService {
     }
 
     public void logout(String token) {
-        if (tokenService.isTokenValid(token)) {
-            //todo тут удаляем refresh токен из бд через репозиторий
-        }
+        tokenService.checkToken(token);
+        UUID userId = UUID.fromString(tokenService.getTokenBody(token).getSubject());
+        clientService.removeRefreshTokenFromList(userId, token);
     }
 
     public void checkClientData(ClientRegDataDto clientData) {
