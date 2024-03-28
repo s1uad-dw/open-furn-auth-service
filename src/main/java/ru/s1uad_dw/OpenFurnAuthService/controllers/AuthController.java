@@ -10,18 +10,22 @@ import org.springframework.web.bind.annotation.*;
 import ru.s1uad_dw.OpenFurnAuthService.dtos.ClientAuthDataDto;
 import ru.s1uad_dw.OpenFurnAuthService.dtos.ClientRegDataDto;
 import ru.s1uad_dw.OpenFurnAuthService.dtos.TokensResponseDto;
-import ru.s1uad_dw.OpenFurnAuthService.exceptions.InvalidDataException;
-import ru.s1uad_dw.OpenFurnAuthService.exceptions.UserAlreadyRegisteredException;
 import ru.s1uad_dw.OpenFurnAuthService.services.AuthService;
+import ru.s1uad_dw.OpenFurnAuthService.services.TokenService;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("api/v1/auth_service")
 @AllArgsConstructor
 public class AuthController {
     @Autowired
-    private AuthService service;
+    private AuthService authService;
 
-    @PostMapping("/auth")
+    @Autowired
+    private TokenService tokenService;
+
+    @PostMapping("auth")
     @Operation(summary = "Authorization by email|username|phone and password")
     @ApiResponses(value = {
             @ApiResponse(
@@ -33,16 +37,16 @@ public class AuthController {
                     }),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Incorrect data",
+                    description = "Invalid data",
                     content = {
                             @Content(
                                     mediaType = "application/json")
                     })
     })
     public TokensResponseDto auth(@RequestBody ClientAuthDataDto clientData){
-        return service.auth(clientData);
+        return authService.auth(clientData);
     }
-    @PostMapping("/reg")
+    @PostMapping("reg")
     @Operation(summary = "Registration by email|username|phone and password")
     @ApiResponses(value = {
             @ApiResponse(
@@ -54,7 +58,7 @@ public class AuthController {
                     }),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Incorrect data",
+                    description = "Invalid data",
                     content = {
                             @Content(
                                     mediaType = "application/json")
@@ -68,10 +72,10 @@ public class AuthController {
                     })
     })
     public TokensResponseDto reg(@RequestBody ClientRegDataDto clientData){
-        return service.reg(clientData);
+        return authService.reg(clientData);
     }
 
-    @PostMapping("/logout")
+    @PostMapping("logout")
     @Operation(summary = "Authorization by email|username|phone and password")
     @ApiResponses(value = {
             @ApiResponse(
@@ -89,8 +93,30 @@ public class AuthController {
                                     mediaType = "application/json")
                     })
     })
-    public String logOut(@RequestParam String token){
-        service.logout();
+    public String logout(@RequestHeader("Authorization") String token){
+        return authService.logout(token);
+    }
+
+    @PostMapping("update_tokens")
+    @Operation(summary = "Update access and refresh tokens")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "New access and refresh tokens",
+                    content = {
+                            @Content(
+                                    mediaType = "application/json")
+                    }),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Token expired",
+                    content = {
+                            @Content(
+                                    mediaType = "application/json")
+                    })
+    })
+    public TokensResponseDto updateTokens(@RequestHeader("Authorization") String token) {
+        return authService.updateTokens(token);
     }
 
 }

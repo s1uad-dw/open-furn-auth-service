@@ -9,5 +9,5 @@ import lombok.RequiredArgsConstructor;
 @AllArgsConstructor
 public class ClientAuthDataDto {
     private String login;
-    private String pass;
+    private String password;
 }

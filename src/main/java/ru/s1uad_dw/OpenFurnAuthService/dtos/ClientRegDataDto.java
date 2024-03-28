@@ -9,13 +9,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @AllArgsConstructor
 public class ClientRegDataDto {
-    private String login;
     private String username;
-    private String pass;
-    @Schema(description = "login type", examples = {
-            "email",
-            "phone",
-            "username"
-    })
-    private String loginType; //
+    private String email;
+    private String phone;
+    private String password;
 }

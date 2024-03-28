@@ -1,7 +1,6 @@
 package ru.s1uad_dw.OpenFurnAuthService.services;
 
 
-import com.auth0.jwt.exceptions.TokenExpiredException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -10,9 +9,9 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import ru.s1uad_dw.OpenFurnAuthService.daos.Client;
 import ru.s1uad_dw.OpenFurnAuthService.dtos.TokensResponseDto;
-import ru.s1uad_dw.OpenFurnAuthService.exceptions.TokenLifetimeExpiredException;
+import ru.s1uad_dw.OpenFurnAuthService.exceptions.InvalidDataException;
+import ru.s1uad_dw.OpenFurnAuthService.exceptions.TokenExpiredException;
 
 import java.util.Date;
 import java.util.List;
@@ -20,8 +19,6 @@ import java.util.UUID;
 
 @Service
 public class TokenService {
-    @Autowired
-    ClientService clientService;
     @Value("${secret-key}")
     private String secretKey;
 
@@ -29,7 +26,7 @@ public class TokenService {
         return Jwts.builder()
                 .subject(userId.toString())
                 .claim("roles", roles)
-                .expiration(new Date(System.currentTimeMillis() + expirationTimeInHours * 3600000L)) // 1 hour
+                .expiration(new Date(System.currentTimeMillis() + expirationTimeInHours * 3600000)) // 1 hour
                 .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -40,27 +37,21 @@ public class TokenService {
         );
     }
 
-    public boolean isTokenExpired(String token){
+    public void checkTokenExpiration(String token){
         try {
             Claims claims = getTokenBody(token);
             Date expiration = claims.getExpiration();
-            return expiration.before(new Date());
+            if (expiration.before(new Date())){
+                throw new TokenExpiredException("Token expired");
+            }
         } catch (JwtException | IllegalArgumentException e) {
-            return true; // В случае ошибки при парсинге токена считаем его просроченным
+            throw new InvalidDataException("Invalid token");
         }
     }
 
-    public TokensResponseDto updateTokens(String token){
-        if (isTokenValid(token)){
-            Claims claims = getTokenBody(token);
-            UUID userId = UUID.fromString(claims.getSubject());
-            List<String> roles = (List<String>) claims.get("roles");
-            TokensResponseDto tokenPair = genTokenPair(userId, roles);
-            clientService.save(new Client(userId, tokenPair.getAccessToken(), tokenPair.getRefreshToken()));
-            return tokenPair;
-        } else {
-            throw new TokenLifetimeExpiredException("Token expired");
-        }
+    public UUID getSubject(String token){
+        Claims claims = getTokenBody(token);
+        return UUID.fromString(claims.getSubject());
     }
 
     public Claims getTokenBody(String token){
@@ -71,15 +62,4 @@ public class TokenService {
                 .getBody();
     }
 
-    public boolean isTokenContains(String token){
-        Claims claims = getTokenBody(token);
-        UUID userId = UUID.fromString(claims.getSubject());
-        //todo получаем из репозитория клиентов список refresh токенов пользователя с id userId
-        // return true если token в списке, false если нет
-        return true;
-    }
-
-    public boolean isTokenValid(String token){
-        return !isTokenExpired(token) && isTokenContains(token);
-    }
 }

@@ -6,13 +6,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import ru.s1uad_dw.OpenFurnAuthService.dtos.AppError;
-import ru.s1uad_dw.OpenFurnAuthService.exceptions.InvalidDataException;
-import ru.s1uad_dw.OpenFurnAuthService.exceptions.ResourceNotFoundException;
-import ru.s1uad_dw.OpenFurnAuthService.exceptions.TokenLifetimeExpiredException;
-import ru.s1uad_dw.OpenFurnAuthService.exceptions.UserAlreadyRegisteredException;
+import ru.s1uad_dw.OpenFurnAuthService.exceptions.*;
+import ru.s1uad_dw.OpenFurnAuthService.exceptions.ServerNotResponseException;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -47,12 +44,22 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler
-    public ResponseEntity<AppError> catchTokenLifetimeExpiredException(TokenLifetimeExpiredException e, HttpServletRequest request) {
+    public ResponseEntity<AppError> catchTokenLifetimeExpiredException(TokenExpiredException e, HttpServletRequest request) {
         return new ResponseEntity<>(new AppError(
                 LocalDateTime.now(),
                 HttpStatus.UNAUTHORIZED.value(),
                 e.getMessage(),
                 request.getRequestURL().toString()
         ), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<AppError> catchServerNotResponseException(ServerNotResponseException e, HttpServletRequest request) {
+        return new ResponseEntity<>(new AppError(
+                LocalDateTime.now(),
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                e.getMessage(),
+                request.getRequestURL().toString()
+        ), HttpStatus.SERVICE_UNAVAILABLE);
     }
 }
